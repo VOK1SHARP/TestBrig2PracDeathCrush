@@ -19,35 +19,103 @@ items:
       seq: 1
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Advertisements/companies
+      url: '{{Base}}/api/Advertisements/companies'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200];
-            test("Статус-код должен быть 200, 201 или 204", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Ответ должен быть массивом компаний", function() {
+                expect(res.body).to.be.an('array');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+
+            test("Массив компаний не должен быть пустым", function() {
+                expect(res.body.length).to.be.greaterThan(0);
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
-            });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+
+            test("Все paymentSum должны быть числами", function() {
+                const allSums = [];
+                res.body.forEach(company => {
+                    if (company.paymentInfo && Array.isArray(company.paymentInfo)) {
+                        company.paymentInfo.forEach(payment => {
+                            if (payment.hasOwnProperty('paymentSum')) {
+                                allSums.push(payment.paymentSum);
+                            }
+                        });
+                    }
                 });
                 
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
+                allSums.forEach(sum => {
+                    expect(sum).to.be.a('number');
+                    expect(isNaN(sum)).to.be.false; 
+                    expect(sum).to.be.greaterThan(0); 
+                });
+                
+            });
+
+
+            test("Все paymentDate должны быть валидными датами", function() {
+                const allDates = [];
+                res.body.forEach(company => {
+                    if (company.paymentInfo && Array.isArray(company.paymentInfo)) {
+                        company.paymentInfo.forEach(payment => {
+                            if (payment.hasOwnProperty('paymentDate')) {
+                                allDates.push(payment.paymentDate);
+                            }
+                        });
+                    }
+                });
+                
+                allDates.forEach(dateStr => {
+                    expect(dateStr).to.be.a('string');
+                    
+                    const date = new Date(dateStr);
+                    expect(date.toString()).to.not.equal('Invalid Date');
+                    expect(date.getFullYear()).to.be.greaterThan(2000);
+                });
+              
+            });
+            test("Все компании должны иметь обязательные поля", function() {
+                const requiredFields = ['id', 'name', 'advertisementLink', 'paymentInfo'];
+                res.body.forEach(company => {
+                    requiredFields.forEach(field => {
+                        expect(company).to.have.property(field);
                     });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+                });
+            });
+
+            test("Все id компаний должны быть числами", function() {
+                res.body.forEach(company => {
+                    expect(company.id).to.be.a('number');
+                });
+            });
+            test("Все названия компаний должны быть непустыми строками", function() {
+                res.body.forEach(company => {
+                    expect(company.name).to.be.a('string');
+                    expect(company.name.length).to.be.greaterThan(0);
+                });
+            });
+            test("Все id платежей должны быть числами", function() {
+                res.body.forEach(company => {
+                    if (company.paymentInfo && Array.isArray(company.paymentInfo)) {
+                        company.paymentInfo.forEach(payment => {
+                            if (payment.hasOwnProperty('id')) {
+                                expect(payment.id).to.be.a('number');
+                            }
+                        });
+                    }
+                });
+            });
+      assertions:
+        - expression: res.status
+          operator: in
+          value: '[200,201,204]'
+        - expression: res.headers
+          operator: isJson
+          value: ''
+        - expression: res.body
+          operator: isNotEmpty
+          value: ''
     settings:
       encodeUrl: true
       timeout: 0
@@ -59,7 +127,7 @@ items:
       seq: 11
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Players/filter?filter=Alpha%20Squad
+      url: '{{Base}}/api/Players/filter?filter=Alpha%20Squad'
       params:
         - name: filter
           value: Alpha%20Squad
@@ -69,29 +137,149 @@ items:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Ответ должен быть массивом", function() {
+                expect(res.body).to.be.an('array');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+
+            test("Массив не должен быть пустым", function() {
+                expect(res.body.length).to.be.greaterThan(0);
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
-            });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+
+            test("Каждый игрок должен иметь обязательные поля", function() {
+                const fields = ['id', 'combinedName', 'name', 'surname', 'nickName', 'country', 'teamName'];
+                res.body.forEach(player => {
+                    fields.forEach(f => expect(player).to.have.property(f));
                 });
-                
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
-                    });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+            });
+
+            test("Все id должны быть числами", function() {
+                res.body.forEach(player => {
+                    expect(player.id).to.be.a('number');
+                });
+            });
+
+            test("Все id должны быть уникальными", function() {
+                const ids = res.body.map(p => p.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+
+            test("Все id должны идти по порядку от 1", function() {
+                res.body.forEach((player, index) => {
+                    expect(player.id).to.equal(index + 1);
+                });
+            });
+
+            test("Все combinedName должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.combinedName).to.be.a('string');
+                    expect(player.combinedName.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все name должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.name).to.be.a('string');
+                    expect(player.name.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все surname должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.surname).to.be.a('string');
+                    expect(player.surname.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все nickName должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.nickName).to.be.a('string');
+                    expect(player.nickName.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все country должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.country).to.be.a('string');
+                    expect(player.country.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все teamName должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.teamName).to.be.a('string');
+                    expect(player.teamName.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("combinedName должен быть суммой name и surname", function() {
+                res.body.forEach(player => {
+                    const expected = player.name + " " + player.surname;
+                    expect(player.combinedName).to.equal(expected);
+                });
+            });
+
+            test("name и surname не должны совпадать", function() {
+                res.body.forEach(player => {
+                    expect(player.name).to.not.equal(player.surname);
+                });
+            });
+
+            test("Все teamName должны быть из списка известных команд", function() {
+                const knownTeams = [
+                    'Alpha Squad', 'Dragon Force', 'Polar Bears', 'Storm Riders',
+                    'Shadow Collective', 'Northern Alliance', 'Imperial Guard',
+                    'Mythic Gaming', 'Aurora Esports', 'Quantum Gaming',
+                    'Frost Giants', 'Titan Brigade', 'Celestial Team',
+                    'Vanguard Esports', 'Nebula Warriors', 'Omega Team',
+                    'Blaze Athletics', 'Monsoon Team', 'Spectral Gaming',
+                    'Horizon Esports'
+                ];
+                res.body.forEach(player => {
+                    expect(knownTeams).to.include(player.teamName);
+                });
+            });
+
+            test("В каждой команде должно быть по 5 игроков", function() {
+                const teamCounts = {};
+                res.body.forEach(player => {
+                    teamCounts[player.teamName] = (teamCounts[player.teamName] || 0) + 1;
+                });
+                Object.values(teamCounts).forEach(count => {
+                    expect(count).to.equal(5);
+                });
+            });
+
+            test("Названия команд должны быть уникальными", function() {
+                const teams = res.body.map(p => p.teamName);
+                const uniqueTeams = new Set(teams);
+                expect(uniqueTeams.size).to.equal(teams.length / 5);
+            });
+
+            test("Все country должны быть строками и не пустыми", function() {
+                res.body.forEach(player => {
+                    expect(player.country).to.be.a('string');
+                    expect(player.country.length).to.be.greaterThan(0);
+                });
+            });
+            test("Все combinedName должны быть уникальными", function() {
+                const names = res.body.map(p => p.combinedName);
+                const uniqueNames = new Set(names);
+                expect(uniqueNames.size).to.equal(names.length);
+            });
+
+            test("Все nickName должны быть уникальными", function() {
+                const nickNames = res.body.map(p => p.nickName);
+                const uniqueNickNames = new Set(nickNames);
+                expect(uniqueNickNames.size).to.equal(nickNames.length);
+            });
+      assertions:
+        - expression: res.headers
+          operator: isJson
+          value: ''
+        - expression: res.status
+          operator: in
+          value: '[200]'
     settings:
       encodeUrl: true
       timeout: 0
@@ -103,35 +291,173 @@ items:
       seq: 3
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Tournaments/1
+      url: '{{Base}}/api/Tournaments/1'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
-            });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
-            });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
-            });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+            test("Ответ должен содержать все основные поля турнира", function() {
+                const requiredFields = ['id', 'name', 'organizer', 'startDate', 'endDate', 'teamParticipantInfos', 'tournamentPrizes'];
+                requiredFields.forEach(field => {
+                    expect(res.body).to.have.property(field);
                 });
+            });
+
+            test("id турнира должен быть числом", function() {
+                expect(res.body.id).to.be.a('number');
+            });
+
+            test("Название турнира должно быть строкой", function() {
+                expect(res.body.name).to.be.a('string');
+                expect(res.body.name.length).to.be.greaterThan(0);
+            });
+
+            test("Организатор должен быть строкой", function() {
+                expect(res.body.organizer).to.be.a('string');
+                expect(res.body.organizer.length).to.be.greaterThan(0);
+            });
+            test("Все даты должны быть валидными", function() {
+                const dates = [res.body.startDate, res.body.endDate];
                 
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
+                dates.forEach(dateStr => {
+                    expect(dateStr).to.be.a('string');
+                    const date = new Date(dateStr);
+                    expect(date.toString()).to.not.equal('Invalid Date');
+                    expect(date.getFullYear()).to.be.greaterThan(2000);
+                });
+            });
+
+            test("Дата начала должна быть раньше даты окончания", function() {
+                const start = new Date(res.body.startDate);
+                const end = new Date(res.body.endDate);
+                expect(start.getTime()).to.be.lessThan(end.getTime());
+            });
+            test("teamParticipantInfos должен быть массивом", function() {
+                expect(res.body.teamParticipantInfos).to.be.an('array');
+            });
+
+            test("Массив команд не должен быть пустым", function() {
+                expect(res.body.teamParticipantInfos.length).to.be.greaterThan(0);
+            });
+            test("Все команды должны иметь обязательные поля", function() {
+                const requiredFields = ['id', 'standing', 'place', 'teamId', 'teamName'];
+                res.body.teamParticipantInfos.forEach(team => {
+                    requiredFields.forEach(field => {
+                        expect(team).to.have.property(field);
                     });
+                });
+            });
+            test("Все standing должны быть числами", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.standing).to.be.a('number');
+                    expect(team.standing).to.be.greaterThan(0);
+                });
+            });
+            test("Все place должны быть числами", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.place).to.be.a('number');
+                    expect(team.place).to.be.greaterThan(0);
+                });
+            });
+            test("Все teamId должны быть числами", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.teamId).to.be.a('number');
+                });
+            });
+            test("Все teamName должны быть строками", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.teamName).to.be.a('string');
+                    expect(team.teamName.length).to.be.greaterThan(0);
+                });
+            });
+            test("standing и place должны совпадать", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.standing).to.equal(team.place);
+                });
+            });
+            test("Команды должны быть отсортированы по месту", function() {
+                const places = res.body.teamParticipantInfos.map(t => t.place);
+                const sortedPlaces = [...places].sort((a, b) => a - b);
+                expect(places).to.deep.equal(sortedPlaces);
+            });
+            test("Все id команд должны быть уникальными", function() {
+                const ids = res.body.teamParticipantInfos.map(t => t.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+            test("tournamentPrizes должен быть массивом", function() {
+                expect(res.body.tournamentPrizes).to.be.an('array');
+            });
+
+            test("Массив призов не должен быть пустым", function() {
+                expect(res.body.tournamentPrizes.length).to.be.greaterThan(0);
+            });
+            test("Все призы должны иметь обязательные поля", function() {
+                const requiredFields = ['id', 'place', 'prize'];
+                res.body.tournamentPrizes.forEach(prize => {
+                    requiredFields.forEach(field => {
+                        expect(prize).to.have.property(field);
+                    });
+                });
+            });
+            test("Все id призов должны быть числами", function() {
+                res.body.tournamentPrizes.forEach(prize => {
+                    expect(prize.id).to.be.a('number');
+                });
+            });
+            test("Все place у призов должны быть числами", function() {
+                res.body.tournamentPrizes.forEach(prize => {
+                    expect(prize.place).to.be.a('number');
+                    expect(prize.place).to.be.greaterThan(0);
+                });
+            });
+            test("Все prize должны быть числами", function() {
+                res.body.tournamentPrizes.forEach(prize => {
+                    expect(prize.prize).to.be.a('number');
+                    expect(isNaN(prize.prize)).to.be.false;
+                    expect(prize.prize).to.be.greaterThan(0);
+                });
+            });
+            test("Призы должны быть отсортированы по месту", function() {
+                const places = res.body.tournamentPrizes.map(p => p.place);
+                const sortedPlaces = [...places].sort((a, b) => a - b);
+                expect(places).to.deep.equal(sortedPlaces);
+            });
+            test("Призы должны уменьшаться с увеличением места", function() {
+                for (let i = 1; i < res.body.tournamentPrizes.length; i++) {
+                    const prev = res.body.tournamentPrizes[i - 1];
+                    const curr = res.body.tournamentPrizes[i];
+                    expect(prev.prize).to.be.at.least(curr.prize);
                 }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+            });
+
+            test("Все id призов должны быть уникальными", function() {
+                const ids = res.body.tournamentPrizes.map(p => p.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+            test("Количество команд должно совпадать с количеством призов", function() {
+                const teamsCount = res.body.teamParticipantInfos.length;
+                const prizesCount = res.body.tournamentPrizes.length;
+                expect(teamsCount).to.equal(prizesCount);
+            });
+            test("Места команд должны совпадать с местами призов", function() {
+                const teamPlaces = res.body.teamParticipantInfos.map(t => t.place);
+                const prizePlaces = res.body.tournamentPrizes.map(p => p.place);
+                expect(teamPlaces).to.deep.equal(prizePlaces);
+            });
+            test("Общая сумма призов должна быть положительной", function() {
+                const totalPrize = res.body.tournamentPrizes.reduce((sum, p) => sum + p.prize, 0);
+                expect(totalPrize).to.be.greaterThan(0);
+            });
+      assertions:
+        - expression: res.status
+          operator: in
+          value: '[200]'
+        - expression: res.headers
+          operator: isJson
+          value: ''
     settings:
       encodeUrl: true
       timeout: 0
@@ -143,35 +469,136 @@ items:
       seq: 4
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Tournaments/last
+      url: '{{Base}}/api/Tournaments/last'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Турнир должен иметь все основные поля", function() {
+                const fields = ['id', 'name', 'organizer', 'startDate', 'endDate', 'teamParticipantInfos', 'tournamentPrizes'];
+                fields.forEach(f => expect(res.body).to.have.property(f));
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+            test("id турнира должен быть числом", function() {
+                expect(res.body.id).to.be.a('number');
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
+            test("Название турнира должно быть строкой", function() {
+                expect(res.body.name).to.be.a('string');
+                expect(res.body.name.length).to.be.greaterThan(0);
             });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+            test("Организатор должен быть строкой", function() {
+                expect(res.body.organizer).to.be.a('string');
+                expect(res.body.organizer.length).to.be.greaterThan(0);
+            });
+
+            test("Даты должны быть валидными", function() {
+                const start = new Date(res.body.startDate);
+                const end = new Date(res.body.endDate);
+                expect(start.toString()).to.not.equal('Invalid Date');
+                expect(end.toString()).to.not.equal('Invalid Date');
+                expect(start.getTime()).to.be.lessThan(end.getTime());
+            });
+            test("teamParticipantInfos должен быть массивом", function() {
+                expect(res.body.teamParticipantInfos).to.be.an('array');
+            });
+            test("Массив команд не должен быть пустым", function() {
+                expect(res.body.teamParticipantInfos.length).to.be.greaterThan(0);
+            });
+            test("Все команды должны иметь обязательные поля", function() {
+                const fields = ['id', 'standing', 'place', 'teamId', 'teamName'];
+                res.body.teamParticipantInfos.forEach(team => {
+                    fields.forEach(f => expect(team).to.have.property(f));
                 });
-                
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
-                    });
+            });
+            test("Все id команд должны быть числами", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.id).to.be.a('number');
+                });
+            });
+            test("Все standing должны быть числами", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.standing).to.be.a('number');
+                    expect(team.standing).to.be.greaterThan(0);
+                });
+            });
+            test("Все place должны быть числами или null", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.place === null || typeof team.place === 'number').to.be.true;
+                });
+            });
+            test("Все teamId должны быть числами", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.teamId).to.be.a('number');
+                });
+            });
+            test("Все teamName должны быть строками", function() {
+                res.body.teamParticipantInfos.forEach(team => {
+                    expect(team.teamName).to.be.a('string');
+                    expect(team.teamName.length).to.be.greaterThan(0);
+                });
+            });
+            test("Все id команд должны быть уникальными", function() {
+                const ids = res.body.teamParticipantInfos.map(t => t.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+            test("tournamentPrizes должен быть массивом", function() {
+                expect(res.body.tournamentPrizes).to.be.an('array');
+            });
+
+            test("Массив призов не должен быть пустым", function() {
+                expect(res.body.tournamentPrizes.length).to.be.greaterThan(0);
+            });
+            test("Все призы должны иметь обязательные поля", function() {
+                const fields = ['id', 'place', 'prize'];
+                res.body.tournamentPrizes.forEach(prize => {
+                    fields.forEach(f => expect(prize).to.have.property(f));
+                });
+            });
+            test("Все id призов должны быть числами", function() {
+                res.body.tournamentPrizes.forEach(prize => {
+                    expect(prize.id).to.be.a('number');
+                });
+            });
+            test("Все place у призов должны быть числами", function() {
+                res.body.tournamentPrizes.forEach(prize => {
+                    expect(prize.place).to.be.a('number');
+                    expect(prize.place).to.be.greaterThan(0);
+                });
+            });
+            test("Все prize должны быть числами", function() {
+                res.body.tournamentPrizes.forEach(prize => {
+                    expect(prize.prize).to.be.a('number');
+                    expect(isNaN(prize.prize)).to.be.false;
+                    expect(prize.prize).to.be.greaterThan(0);
+                });
+            });
+            test("Все id призов должны быть уникальными", function() {
+                const ids = res.body.tournamentPrizes.map(p => p.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+            test("Количество команд должно совпадать с количеством призов", function() {
+                expect(res.body.teamParticipantInfos.length).to.equal(res.body.tournamentPrizes.length);
+            });
+            test("Места призов должны идти по порядку от 1", function() {
+                res.body.tournamentPrizes.forEach((prize, index) => {
+                    expect(prize.place).to.equal(index + 1);
+                });
+            });
+
+            test("Призы должны быть отсортированы по убыванию", function() {
+                for (let i = 1; i < res.body.tournamentPrizes.length; i++) {
+                    expect(res.body.tournamentPrizes[i - 1].prize).to.be.at.least(res.body.tournamentPrizes[i].prize);
                 }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+            });
+      assertions:
+        - expression: res.status
+          operator: in
+          value: '[200]'
+        - expression: res.headers
+          operator: isJson
+          value: ''
     settings:
       encodeUrl: true
       timeout: 0
@@ -183,35 +610,127 @@ items:
       seq: 5
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/MatchHistory/1
+      url: '{{Base}}/api/MatchHistory/1'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Ответ должен быть массивом", function() {
+                expect(res.body).to.be.an('array');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+
+            test("Массив не должен быть пустым", function() {
+                expect(res.body.length).to.be.greaterThan(0);
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
+            test("Каждый матч должен иметь обязательные поля", function() {
+                const fields = ['id', 'winnerId', 'loserId', 'tournamentId', 'date', 'winner', 'loser'];
+                res.body.forEach(match => {
+                    fields.forEach(f => expect(match).to.have.property(f));
+                });
             });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+            test("Все id должны быть числами", function() {
+                res.body.forEach(match => {
+                    expect(match.id).to.be.a('number');
+                });
+            });
+
+            test("Все id должны быть уникальными", function() {
+                const ids = res.body.map(m => m.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+
+            test("Все id должны идти по порядку от 1", function() {
+                res.body.forEach((match, index) => {
+                    expect(match.id).to.equal(index + 1);
+                });
+            });
+            test("Все winnerId должны быть числами", function() {
+                res.body.forEach(match => {
+                    expect(match.winnerId).to.be.a('number');
+                });
+            });
+
+            test("Все loserId должны быть числами", function() {
+                res.body.forEach(match => {
+                    expect(match.loserId).to.be.a('number');
+                });
+            });
+
+            test("winnerId и loserId не должны совпадать", function() {
+                res.body.forEach(match => {
+                    expect(match.winnerId).to.not.equal(match.loserId);
+                });
+            });
+            test("Все tournamentId должны быть числами", function() {
+                res.body.forEach(match => {
+                    expect(match.tournamentId).to.be.a('number');
+                });
+            });
+            test("Все даты должны быть валидными", function() {
+                res.body.forEach(match => {
+                    const date = new Date(match.date);
+                    expect(date.toString()).to.not.equal('Invalid Date');
+                    expect(date.getFullYear()).to.be.greaterThan(2000);
+                });
+            });
+
+            test("Даты должны быть в формате ISO", function() {
+                const dateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+\d{2}:\d{2}$/;
+                res.body.forEach(match => {
+                    expect(match.date).to.match(dateRegex);
+                });
+            });
+            test("Все winner должны быть строками", function() {
+                res.body.forEach(match => {
+                    expect(match.winner).to.be.a('string');
+                    expect(match.winner.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все loser должны быть строками", function() {
+                res.body.forEach(match => {
+                    expect(match.loser).to.be.a('string');
+                    expect(match.loser.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("winner и loser не должны совпадать", function() {
+                res.body.forEach(match => {
+                    expect(match.winner).to.not.equal(match.loser);
+                });
+            });
+            test("winnerId должен соответствовать названию победителя", function() {
+                const idToName = {};
+                res.body.forEach(match => {
+                    idToName[match.winnerId] = match.winner;
+                    idToName[match.loserId] = match.loser;
                 });
                 
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
-                    });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+                res.body.forEach(match => {
+                    expect(idToName[match.winnerId]).to.equal(match.winner);
+                });
+            });
+
+            test("loserId должен соответствовать названию проигравшего", function() {
+                const idToName = {};
+                res.body.forEach(match => {
+                    idToName[match.winnerId] = match.winner;
+                    idToName[match.loserId] = match.loser;
+                });
+                
+                res.body.forEach(match => {
+                    expect(idToName[match.loserId]).to.equal(match.loser);
+                });
+            });
+      assertions:
+        - expression: res.headers
+          operator: isJson
+          value: ''
+        - expression: res.status
+          operator: in
+          value: '[200]'
     settings:
       encodeUrl: true
       timeout: 0
@@ -223,35 +742,142 @@ items:
       seq: 6
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Players
+      url: '{{Base}}/api/Players'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Ответ должен быть массивом", function() {
+                expect(res.body).to.be.an('array');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+
+            test("Массив не должен быть пустым", function() {
+                expect(res.body.length).to.be.greaterThan(0);
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
-            });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+
+            test("Каждый игрок должен иметь обязательные поля", function() {
+                const fields = ['id', 'combinedName', 'name', 'surname', 'nickName', 'country', 'teamName'];
+                res.body.forEach(player => {
+                    fields.forEach(f => expect(player).to.have.property(f));
                 });
-                
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
-                    });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+            });
+
+            test("Все id должны быть числами", function() {
+                res.body.forEach(player => {
+                    expect(player.id).to.be.a('number');
+                });
+            });
+
+            test("Все id должны быть уникальными", function() {
+                const ids = res.body.map(p => p.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+
+            test("Все id должны идти по порядку от 1", function() {
+                res.body.forEach((player, index) => {
+                    expect(player.id).to.equal(index + 1);
+                });
+            });
+
+            test("Все combinedName должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.combinedName).to.be.a('string');
+                    expect(player.combinedName.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все name должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.name).to.be.a('string');
+                    expect(player.name.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все surname должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.surname).to.be.a('string');
+                    expect(player.surname.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все nickName должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.nickName).to.be.a('string');
+                    expect(player.nickName.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все country должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.country).to.be.a('string');
+                    expect(player.country.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все teamName должны быть строками", function() {
+                res.body.forEach(player => {
+                    expect(player.teamName).to.be.a('string');
+                    expect(player.teamName.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("combinedName должен быть суммой name и surname", function() {
+                res.body.forEach(player => {
+                    const expectedCombined = player.name + " " + player.surname;
+                    expect(player.combinedName).to.equal(expectedCombined);
+                });
+            });
+            test("Все teamName должны быть из списка известных команд", function() {
+                const knownTeams = [
+                    'Alpha Squad', 'Dragon Force', 'Polar Bears', 'Storm Riders',
+                    'Shadow Collective', 'Northern Alliance', 'Imperial Guard',
+                    'Mythic Gaming', 'Aurora Esports', 'Quantum Gaming',
+                    'Frost Giants', 'Titan Brigade', 'Celestial Team',
+                    'Vanguard Esports', 'Nebula Warriors', 'Omega Team',
+                    'Blaze Athletics', 'Monsoon Team', 'Spectral Gaming',
+                    'Horizon Esports'
+                ];
+                res.body.forEach(player => {
+                    expect(knownTeams).to.include(player.teamName);
+                });
+            });
+
+            test("В каждой команде должно быть по 5 игроков", function() {
+                const teamCounts = {};
+                res.body.forEach(player => {
+                    teamCounts[player.teamName] = (teamCounts[player.teamName] || 0) + 1;
+                });
+                Object.values(teamCounts).forEach(count => {
+                    expect(count).to.equal(5);
+                });
+            });
+
+            test("Названия команд должны быть уникальными", function() {
+                const teams = res.body.map(p => p.teamName);
+                const uniqueTeams = new Set(teams);
+                expect(uniqueTeams.size).to.equal(teams.length / 5);
+            });
+
+            test("Все country должны быть строками и не пустыми", function() {
+                res.body.forEach(player => {
+                    expect(player.country).to.be.a('string');
+                    expect(player.country.length).to.be.greaterThan(0);
+                });
+            });
+            test("Все nickName должны быть уникальными", function() {
+                const nickNames = res.body.map(p => p.nickName);
+                const uniqueNickNames = new Set(nickNames);
+                expect(uniqueNickNames.size).to.equal(nickNames.length);
+            });
+      assertions:
+        - expression: res.headers
+          operator: isJson
+          value: ''
+        - expression: res.status
+          operator: in
+          value: '[200]'
     settings:
       encodeUrl: true
       timeout: 0
@@ -263,35 +889,71 @@ items:
       seq: 2
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Advertisements/probabilities
+      url: '{{Base}}/api/Advertisements/probabilities'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200];
-            test("Статус-код должен быть 200, 201 или 204", function() {
-                expect(validStatuses).to.include(res.status);
+            // ============================================
+            test("Ответ должен быть массивом", function() {
+                expect(res.body).to.be.an('array');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+            test("Массив не должен быть пустым", function() {
+                expect(res.body.length).to.be.greaterThan(0);
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
-            });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+            test("Все key должны быть числами", function() {
+                res.body.forEach(item => {
+                    expect(item.key).to.be.a('number');
                 });
-                
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
-                    });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+            });
+            test("Все value должны быть числами", function() {
+                res.body.forEach(item => {
+                    expect(item.value).to.be.a('number');
+                    expect(isNaN(item.value)).to.be.false;
+                });
+            });
+            test("Все value должны быть больше 0", function() {
+                res.body.forEach(item => {
+                    expect(item.value).to.be.greaterThan(0);
+                });
+            });
+            test("Каждый элемент должен иметь поля key и value", function() {
+                res.body.forEach(item => {
+                    expect(item).to.have.property('key');
+                    expect(item).to.have.property('value');
+                });
+            });
+            test("Все key должны быть уникальными", function() {
+                const keys = res.body.map(item => item.key);
+                const uniqueKeys = new Set(keys);
+                expect(uniqueKeys.size).to.equal(keys.length);
+            });
+            test("Все key должны быть целыми числами", function() {
+                res.body.forEach(item => {
+                    expect(Number.isInteger(item.key)).to.be.true;
+                });
+            });
+            test("Все value должны быть целыми числами", function() {
+                res.body.forEach(item => {
+                    expect(Number.isInteger(item.value)).to.be.true;
+                });
+            });
+            test("Key должны идти по порядку от 1", function() {
+                res.body.forEach((item, index) => {
+                    expect(item.key).to.equal(index + 1);
+                });
+            });
+      assertions:
+        - expression: res.status
+          operator: in
+          value: '[200]'
+        - expression: res.body
+          operator: isNotEmpty
+          value: ''
+        - expression: res.headers
+          operator: isJson
+          value: ''
     settings:
       encodeUrl: true
       timeout: 0
@@ -303,46 +965,19 @@ items:
       seq: 7
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Teams/1/1/income
+      url: '{{Base}}/api/Teams/1/1/income'
       auth: inherit
     runtime:
-      scripts:
-        - type: tests
-          code: |-
-            const validStatuses = [200];
-
-            test("Статус-код должен быть допустимым", function() {
-                expect(validStatuses).to.include(res.status);
-            });
-
-
-            test("Тело ответа не должно быть undefined или null", function() {
-                expect(res.body).to.not.be.undefined;
-                expect(res.body).to.not.be.null;
-            });
-
-
-            test("Ответ должен быть в формате JSON или содержать код ошибки", function() {
-
-                if (res.status === 400) {
-
-                    const isValidError = typeof res.body === 'number' || 
-                                        (typeof res.body === 'object' && res.body !== null);
-                    expect(isValidError).to.be.true;
-                    
-                    console.log(`❌ Ошибка ${res.status}: Код ошибки ${res.body}`);
-                } else {
-
-                    expect(res.headers['content-type']).to.include('application/json');
-                }
-            });
-
-
-            if (res.status === 400 && typeof res.body === 'number') {
-                test("Код ошибки должен быть в диапазоне 100000-999999", function() {
-                    expect(res.body).to.be.within(100000, 999999);
-                });
-            }
+      assertions:
+        - expression: res.status
+          operator: in
+          value: '[200]'
+        - expression: res.body
+          operator: isNumber
+          value: ''
+        - expression: res.headers
+          operator: isJson
+          value: ''
     settings:
       encodeUrl: true
       timeout: 0
@@ -354,35 +989,305 @@ items:
       seq: 9
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Teams/1
+      url: '{{Base}}/api/Teams/1'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Ответ должен быть объектом", function() {
+                expect(res.body).to.be.an('object');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+
+            test("Команда должна иметь обязательные поля", function() {
+                const fields = ['id', 'name', 'players', 'teamTournamentResults', 'teamRatings', 'matchesWon', 'matchesLost'];
+                fields.forEach(f => expect(res.body).to.have.property(f));
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
+
+            test("id команды должен быть числом", function() {
+                expect(res.body.id).to.be.a('number');
             });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+
+            test("name команды должен быть строкой", function() {
+                expect(res.body.name).to.be.a('string');
+                expect(res.body.name.length).to.be.greaterThan(0);
+            });
+
+            test("players должен быть массивом", function() {
+                expect(res.body.players).to.be.an('array');
+            });
+
+            test("В команде должно быть 5 игроков", function() {
+                expect(res.body.players.length).to.equal(5);
+            });
+
+            test("Каждый игрок должен иметь обязательные поля", function() {
+                const fields = ['id', 'combinedName', 'name', 'surname', 'nickName', 'country', 'teamName'];
+                res.body.players.forEach(player => {
+                    fields.forEach(f => expect(player).to.have.property(f));
                 });
-                
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
-                    });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+            });
+
+            test("Все player id должны быть числами", function() {
+                res.body.players.forEach(player => {
+                    expect(player.id).to.be.a('number');
+                });
+            });
+
+            test("Все player id должны быть уникальными", function() {
+                const ids = res.body.players.map(p => p.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+
+            test("Все combinedName должны быть строками", function() {
+                res.body.players.forEach(player => {
+                    expect(player.combinedName).to.be.a('string');
+                });
+            });
+
+            test("combinedName должен быть суммой name и surname", function() {
+                res.body.players.forEach(player => {
+                    const expected = player.name + " " + player.surname;
+                    expect(player.combinedName).to.equal(expected);
+                });
+            });
+
+            test("Все name должны быть строками", function() {
+                res.body.players.forEach(player => {
+                    expect(player.name).to.be.a('string');
+                });
+            });
+
+            test("Все surname должны быть строками", function() {
+                res.body.players.forEach(player => {
+                    expect(player.surname).to.be.a('string');
+                });
+            });
+
+            test("Все nickName должны быть строками", function() {
+                res.body.players.forEach(player => {
+                    expect(player.nickName).to.be.a('string');
+                });
+            });
+
+            test("Все country должны быть строками", function() {
+                res.body.players.forEach(player => {
+                    expect(player.country).to.be.a('string');
+                });
+            });
+
+            test("teamName игрока должен совпадать с названием команды", function() {
+                res.body.players.forEach(player => {
+                    expect(player.teamName).to.equal(res.body.name);
+                });
+            });
+
+            test("teamTournamentResults должен быть массивом", function() {
+                expect(res.body.teamTournamentResults).to.be.an('array');
+            });
+
+            test("Каждый teamTournamentResult должен иметь обязательные поля", function() {
+                const fields = ['id', 'standing', 'place', 'teamId', 'teamName'];
+                res.body.teamTournamentResults.forEach(result => {
+                    fields.forEach(f => expect(result).to.have.property(f));
+                });
+            });
+
+            test("Все teamTournamentResult id должны быть числами", function() {
+                res.body.teamTournamentResults.forEach(result => {
+                    expect(result.id).to.be.a('number');
+                });
+            });
+
+            test("Все standing должны быть числами", function() {
+                res.body.teamTournamentResults.forEach(result => {
+                    expect(result.standing).to.be.a('number');
+                });
+            });
+
+            test("Все place должны быть числами или null", function() {
+                res.body.teamTournamentResults.forEach(result => {
+                    expect(result.place === null || typeof result.place === 'number').to.be.true;
+                });
+            });
+
+            test("Все teamId должны совпадать с id команды", function() {
+                res.body.teamTournamentResults.forEach(result => {
+                    expect(result.teamId).to.equal(res.body.id);
+                });
+            });
+
+            test("teamName должен совпадать с названием команды", function() {
+                res.body.teamTournamentResults.forEach(result => {
+                    expect(result.teamName).to.equal(res.body.name);
+                });
+            });
+
+            test("teamRatings должен быть массивом", function() {
+                expect(res.body.teamRatings).to.be.an('array');
+            });
+
+            test("Команда должна иметь хотя бы один рейтинг", function() {
+                expect(res.body.teamRatings.length).to.be.greaterThan(0);
+            });
+
+            test("Каждый teamRating должен иметь обязательные поля", function() {
+                const fields = ['id', 'score', 'atMoment', 'teamName', 'teamId'];
+                res.body.teamRatings.forEach(rating => {
+                    fields.forEach(f => expect(rating).to.have.property(f));
+                });
+            });
+
+            test("Все rating id должны быть числами", function() {
+                res.body.teamRatings.forEach(rating => {
+                    expect(rating.id).to.be.a('number');
+                });
+            });
+
+            test("Все score должны быть числами", function() {
+                res.body.teamRatings.forEach(rating => {
+                    expect(rating.score).to.be.a('number');
+                });
+            });
+
+            test("Все atMoment должны быть валидными датами", function() {
+                res.body.teamRatings.forEach(rating => {
+                    const date = new Date(rating.atMoment);
+                    expect(date.toString()).to.not.equal('Invalid Date');
+                });
+            });
+
+            test("teamName рейтинга должен совпадать с названием команды", function() {
+                res.body.teamRatings.forEach(rating => {
+                    expect(rating.teamName).to.equal(res.body.name);
+                });
+            });
+
+            test("teamId рейтинга должен совпадать с id команды", function() {
+                res.body.teamRatings.forEach(rating => {
+                    expect(rating.teamId).to.equal(res.body.id);
+                });
+            });
+
+            test("matchesWon должен быть массивом", function() {
+                expect(res.body.matchesWon).to.be.an('array');
+            });
+
+            test("matchesLost должен быть массивом", function() {
+                expect(res.body.matchesLost).to.be.an('array');
+            });
+
+            test("Каждый матч в matchesWon должен иметь обязательные поля", function() {
+                const fields = ['id', 'winnerId', 'loserId', 'tournamentId', 'date', 'winner', 'loser'];
+                res.body.matchesWon.forEach(match => {
+                    fields.forEach(f => expect(match).to.have.property(f));
+                });
+            });
+
+            test("Каждый матч в matchesLost должен иметь обязательные поля", function() {
+                const fields = ['id', 'winnerId', 'loserId', 'tournamentId', 'date', 'winner', 'loser'];
+                res.body.matchesLost.forEach(match => {
+                    fields.forEach(f => expect(match).to.have.property(f));
+                });
+            });
+
+            test("Все match id должны быть числами", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.id).to.be.a('number');
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.id).to.be.a('number');
+                });
+            });
+
+            test("Все winnerId должны быть числами", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.winnerId).to.be.a('number');
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.winnerId).to.be.a('number');
+                });
+            });
+
+            test("Все loserId должны быть числами", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.loserId).to.be.a('number');
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.loserId).to.be.a('number');
+                });
+            });
+
+            test("Все tournamentId должны быть числами", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.tournamentId).to.be.a('number');
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.tournamentId).to.be.a('number');
+                });
+            });
+
+            test("Все даты матчей должны быть валидными", function() {
+                res.body.matchesWon.forEach(match => {
+                    const date = new Date(match.date);
+                    expect(date.toString()).to.not.equal('Invalid Date');
+                });
+                res.body.matchesLost.forEach(match => {
+                    const date = new Date(match.date);
+                    expect(date.toString()).to.not.equal('Invalid Date');
+                });
+            });
+
+            test("Все winner должны быть строками", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.winner).to.be.a('string');
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.winner).to.be.a('string');
+                });
+            });
+
+            test("Все loser должны быть строками", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.loser).to.be.a('string');
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.loser).to.be.a('string');
+                });
+            });
+
+            test("В matchesWon winner должен быть текущей командой", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.winner).to.equal(res.body.name);
+                    expect(match.winnerId).to.equal(res.body.id);
+                });
+            });
+
+            test("В matchesLost loser должен быть текущей командой", function() {
+                res.body.matchesLost.forEach(match => {
+                    expect(match.loser).to.equal(res.body.name);
+                    expect(match.loserId).to.equal(res.body.id);
+                });
+            });
+
+            test("winner и loser не должны совпадать", function() {
+                res.body.matchesWon.forEach(match => {
+                    expect(match.winner).to.not.equal(match.loser);
+                    expect(match.winnerId).to.not.equal(match.loserId);
+                });
+                res.body.matchesLost.forEach(match => {
+                    expect(match.winner).to.not.equal(match.loser);
+                    expect(match.winnerId).to.not.equal(match.loserId);
+                });
+            });
+      assertions:
+        - expression: res.headers
+          operator: isJson
+          value: ''
+        - expression: res.status
+          operator: in
+          value: '[200]'
     settings:
       encodeUrl: true
       timeout: 0
@@ -394,46 +1299,26 @@ items:
       seq: 10
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Teams/1/1/income
+      url: '{{Base}}/api/Teams/1/1/income'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200];
-
-            test("Статус-код должен быть допустимым", function() {
-                expect(validStatuses).to.include(res.status);
-            });
-
-
             test("Тело ответа не должно быть undefined или null", function() {
-                expect(res.body).to.not.be.undefined;
-                expect(res.body).to.not.be.null;
-            });
-
-
-            test("Ответ должен быть в формате JSON или содержать код ошибки", function() {
-
-                if (res.status === 400) {
-
-                    const isValidError = typeof res.body === 'number' || 
-                                        (typeof res.body === 'object' && res.body !== null);
-                    expect(isValidError).to.be.true;
-                    
-                    console.log(`❌ Ошибка ${res.status}: Код ошибки ${res.body}`);
-                } else {
-
-                    expect(res.headers['content-type']).to.include('application/json');
-                }
-            });
-
-
-            if (res.status === 400 && typeof res.body === 'number') {
-                test("Код ошибки должен быть в диапазоне 100000-999999", function() {
-                    expect(res.body).to.be.within(100000, 999999);
-                });
-            }
+                            expect(res.body).to.not.be.undefined;
+                            expect(res.body).to.not.be.null;
+                        });
+      assertions:
+        - expression: res.body
+          operator: isNumber
+          value: ''
+        - expression: res.status
+          operator: in
+          value: '[200]'
+        - expression: res.headers
+          operator: isJson
+          value: ''
     settings:
       encodeUrl: true
       timeout: 0
@@ -445,35 +1330,426 @@ items:
       seq: 8
     http:
       method: GET
-      url: http://51.250.0.63:5004/api/Teams
+      url: '{{Base}}/api/Teams'
       auth: inherit
     runtime:
       scripts:
         - type: tests
           code: |-
-            const validStatuses = [200]
-            test("Статус-код должен быть 200", function() {
-                expect(validStatuses).to.include(res.status);
+            test("Ответ должен быть массивом", function() {
+                expect(res.body).to.be.an('array');
             });
-            test("Тело ответа не должно быть пустым", function() {
-                expect(res.body).to.not.be.empty;
+
+            test("Массив не должен быть пустым", function() {
+                expect(res.body.length).to.be.greaterThan(0);
             });
-            test("Ответ должен быть в формате JSON", function() {
-                expect(res.headers['content-type']).to.include('application/json');
-            });
-            if (Array.isArray(res.body)) {
-                test("Ответ должен быть массивом", function() {
-                    expect(res.body).to.be.an('array');
+
+            test("Каждая команда должна иметь обязательные поля", function() {
+                const fields = ['id', 'name', 'players', 'teamTournamentResults', 'teamRatings', 'matchesWon', 'matchesLost'];
+                res.body.forEach(team => {
+                    fields.forEach(f => expect(team).to.have.property(f));
                 });
-                
-                if (res.body.length > 0) {
-                    test("Массив должен содержать элементы", function() {
-                        expect(res.body.length).to.be.greaterThan(0);
+            });
+
+            test("Все id команд должны быть числами", function() {
+                res.body.forEach(team => {
+                    expect(team.id).to.be.a('number');
+                });
+            });
+
+            test("Все id команд должны быть уникальными", function() {
+                const ids = res.body.map(t => t.id);
+                const uniqueIds = new Set(ids);
+                expect(uniqueIds.size).to.equal(ids.length);
+            });
+
+            test("Все name команд должны быть строками", function() {
+                res.body.forEach(team => {
+                    expect(team.name).to.be.a('string');
+                    expect(team.name.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Все players должны быть массивами", function() {
+                res.body.forEach(team => {
+                    expect(team.players).to.be.an('array');
+                });
+            });
+
+            test("В каждой команде должно быть по 5 игроков", function() {
+                res.body.forEach(team => {
+                    expect(team.players.length).to.equal(5);
+                });
+            });
+
+            test("Каждый игрок должен иметь обязательные поля", function() {
+                const fields = ['id', 'combinedName', 'name', 'surname', 'nickName', 'country', 'teamName'];
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        fields.forEach(f => expect(player).to.have.property(f));
                     });
-                }
-            }
-            console.log(`✅ Проверки завершены для ${req.url}`);
-            console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+                });
+            });
+
+            test("Все player id должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.id).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все player id должны быть уникальными", function() {
+                const allIds = [];
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        allIds.push(player.id);
+                    });
+                });
+                const uniqueIds = new Set(allIds);
+                expect(uniqueIds.size).to.equal(allIds.length);
+            });
+
+            test("Все combinedName должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.combinedName).to.be.a('string');
+                    });
+                });
+            });
+
+            test("combinedName должен быть суммой name и surname", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        const expected = player.name + " " + player.surname;
+                        expect(player.combinedName).to.equal(expected);
+                    });
+                });
+            });
+
+            test("Все name должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.name).to.be.a('string');
+                    });
+                });
+            });
+
+            test("Все surname должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.surname).to.be.a('string');
+                    });
+                });
+            });
+
+            test("Все nickName должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.nickName).to.be.a('string');
+                    });
+                });
+            });
+
+            test("Все country должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.country).to.be.a('string');
+                    });
+                });
+            });
+
+            test("teamName игрока должен совпадать с названием команды", function() {
+                res.body.forEach(team => {
+                    team.players.forEach(player => {
+                        expect(player.teamName).to.equal(team.name);
+                    });
+                });
+            });
+
+            test("Все teamTournamentResults должны быть массивами", function() {
+                res.body.forEach(team => {
+                    expect(team.teamTournamentResults).to.be.an('array');
+                });
+            });
+
+            test("Каждый teamTournamentResult должен иметь обязательные поля", function() {
+                const fields = ['id', 'standing', 'place', 'teamId', 'teamName'];
+                res.body.forEach(team => {
+                    team.teamTournamentResults.forEach(result => {
+                        fields.forEach(f => expect(result).to.have.property(f));
+                    });
+                });
+            });
+
+            test("Все teamTournamentResult id должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.teamTournamentResults.forEach(result => {
+                        expect(result.id).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все standing должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.teamTournamentResults.forEach(result => {
+                        expect(result.standing).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все place должны быть числами или null", function() {
+                res.body.forEach(team => {
+                    team.teamTournamentResults.forEach(result => {
+                        expect(result.place === null || typeof result.place === 'number').to.be.true;
+                    });
+                });
+            });
+
+            test("Все teamId должны совпадать с id команды", function() {
+                res.body.forEach(team => {
+                    team.teamTournamentResults.forEach(result => {
+                        expect(result.teamId).to.equal(team.id);
+                    });
+                });
+            });
+
+            test("teamName должен совпадать с названием команды", function() {
+                res.body.forEach(team => {
+                    team.teamTournamentResults.forEach(result => {
+                        expect(result.teamName).to.equal(team.name);
+                    });
+                });
+            });
+
+            test("Все teamRatings должны быть массивами", function() {
+                res.body.forEach(team => {
+                    expect(team.teamRatings).to.be.an('array');
+                });
+            });
+
+            test("Каждая команда должна иметь хотя бы один рейтинг", function() {
+                res.body.forEach(team => {
+                    expect(team.teamRatings.length).to.be.greaterThan(0);
+                });
+            });
+
+            test("Каждый teamRating должен иметь обязательные поля", function() {
+                const fields = ['id', 'score', 'atMoment', 'teamName', 'teamId'];
+                res.body.forEach(team => {
+                    team.teamRatings.forEach(rating => {
+                        fields.forEach(f => expect(rating).to.have.property(f));
+                    });
+                });
+            });
+
+            test("Все rating id должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.teamRatings.forEach(rating => {
+                        expect(rating.id).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все score должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.teamRatings.forEach(rating => {
+                        expect(rating.score).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все atMoment должны быть валидными датами", function() {
+                res.body.forEach(team => {
+                    team.teamRatings.forEach(rating => {
+                        const date = new Date(rating.atMoment);
+                        expect(date.toString()).to.not.equal('Invalid Date');
+                    });
+                });
+            });
+
+            test("teamName рейтинга должен совпадать с названием команды", function() {
+                res.body.forEach(team => {
+                    team.teamRatings.forEach(rating => {
+                        expect(rating.teamName).to.equal(team.name);
+                    });
+                });
+            });
+
+            test("teamId рейтинга должен совпадать с id команды", function() {
+                res.body.forEach(team => {
+                    team.teamRatings.forEach(rating => {
+                        expect(rating.teamId).to.equal(team.id);
+                    });
+                });
+            });
+
+            test("Все matchesWon должны быть массивами", function() {
+                res.body.forEach(team => {
+                    expect(team.matchesWon).to.be.an('array');
+                });
+            });
+
+            test("Все matchesLost должны быть массивами", function() {
+                res.body.forEach(team => {
+                    expect(team.matchesLost).to.be.an('array');
+                });
+            });
+
+            test("Каждый матч в matchesWon должен иметь обязательные поля", function() {
+                const fields = ['id', 'winnerId', 'loserId', 'tournamentId', 'date', 'winner', 'loser'];
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        fields.forEach(f => expect(match).to.have.property(f));
+                    });
+                });
+            });
+
+            test("Каждый матч в matchesLost должен иметь обязательные поля", function() {
+                const fields = ['id', 'winnerId', 'loserId', 'tournamentId', 'date', 'winner', 'loser'];
+                res.body.forEach(team => {
+                    team.matchesLost.forEach(match => {
+                        fields.forEach(f => expect(match).to.have.property(f));
+                    });
+                });
+            });
+
+            test("Все match id должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.id).to.be.a('number');
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.id).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все winnerId должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.winnerId).to.be.a('number');
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.winnerId).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все loserId должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.loserId).to.be.a('number');
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.loserId).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все tournamentId должны быть числами", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.tournamentId).to.be.a('number');
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.tournamentId).to.be.a('number');
+                    });
+                });
+            });
+
+            test("Все даты матчей должны быть валидными", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        const date = new Date(match.date);
+                        expect(date.toString()).to.not.equal('Invalid Date');
+                    });
+                    team.matchesLost.forEach(match => {
+                        const date = new Date(match.date);
+                        expect(date.toString()).to.not.equal('Invalid Date');
+                    });
+                });
+            });
+
+            test("Все winner должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.winner).to.be.a('string');
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.winner).to.be.a('string');
+                    });
+                });
+            });
+
+            test("Все loser должны быть строками", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.loser).to.be.a('string');
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.loser).to.be.a('string');
+                    });
+                });
+            });
+
+            test("В matchesWon winner должен быть текущей командой", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.winner).to.equal(team.name);
+                        expect(match.winnerId).to.equal(team.id);
+                    });
+                });
+            });
+
+            test("В matchesLost loser должен быть текущей командой", function() {
+                res.body.forEach(team => {
+                    team.matchesLost.forEach(match => {
+                        expect(match.loser).to.equal(team.name);
+                        expect(match.loserId).to.equal(team.id);
+                    });
+                });
+            });
+
+            test("winner и loser не должны совпадать", function() {
+                res.body.forEach(team => {
+                    team.matchesWon.forEach(match => {
+                        expect(match.winner).to.not.equal(match.loser);
+                        expect(match.winnerId).to.not.equal(match.loserId);
+                    });
+                    team.matchesLost.forEach(match => {
+                        expect(match.winner).to.not.equal(match.loser);
+                        expect(match.winnerId).to.not.equal(match.loserId);
+                    });
+                });
+            });
+
+            test("Количество выигранных матчей должно совпадать с длиной matchesWon", function() {
+                res.body.forEach(team => {
+                    const expectedWins = team.matchesWon.length;
+                    expect(team.matchesWon.length).to.equal(expectedWins);
+                });
+            });
+
+            test("Количество проигранных матчей должно совпадать с длиной matchesLost", function() {
+                res.body.forEach(team => {
+                    const expectedLosses = team.matchesLost.length;
+                    expect(team.matchesLost.length).to.equal(expectedLosses);
+                });
+            });
+
+            test("Названия команд должны быть уникальными", function() {
+                const names = res.body.map(t => t.name);
+                const uniqueNames = new Set(names);
+                expect(uniqueNames.size).to.equal(names.length);
+            });
+      assertions:
+        - expression: res.headers
+          operator: isJson
+          value: ''
+        - expression: res.status
+          operator: in
+          value: '[200]'
     settings:
       encodeUrl: true
       timeout: 0
@@ -485,5 +1761,5 @@ extensions:
     ignore:
       - node_modules
       - .git
-    exportedAt: '2026-07-13T12:41:41.085Z'
+    exportedAt: '2026-07-13T19:47:23.819Z'
     exportedUsing: Bruno
