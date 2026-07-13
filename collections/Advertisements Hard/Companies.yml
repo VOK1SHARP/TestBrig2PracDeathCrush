@@ -1,0 +1,43 @@
+info:
+  name: Companies
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://51.250.0.63:5004/api/Advertisements/companies
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const validStatuses = [200, 201, 204];
+        test("Статус-код должен быть 200, 201 или 204", function() {
+            expect(validStatuses).to.include(res.status);
+        });
+        test("Тело ответа не должно быть пустым", function() {
+            expect(res.body).to.not.be.empty;
+        });
+        test("Ответ должен быть в формате JSON", function() {
+            expect(res.headers['content-type']).to.include('application/json');
+        });
+        if (Array.isArray(res.body)) {
+            test("Ответ должен быть массивом", function() {
+                expect(res.body).to.be.an('array');
+            });
+            
+            if (res.body.length > 0) {
+                test("Массив должен содержать элементы", function() {
+                    expect(res.body.length).to.be.greaterThan(0);
+                });
+            }
+        }
+        console.log(`✅ Проверки завершены для ${req.url}`);
+        console.log(`📊 Статус: ${res.status}, Длина ответа: ${JSON.stringify(res.body).length} символов`);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

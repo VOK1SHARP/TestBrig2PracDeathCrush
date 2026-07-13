@@ -1,0 +1,34 @@
+opencollection: 1.0.0
+info:
+  name: "Practice"
+  type: workspace
+
+collections:
+  - name: "Advertisements"
+    path: "collections/Advertisements"
+  - name: "MatchHistory"
+    path: "collections/MatchHistory"
+  - name: "Ratings"
+    path: "collections/Ratings"
+  - name: "Teams"
+    path: "collections/Teams"
+  - name: "Tournaments"
+    path: "collections/Tournaments"
+  - name: "Player"
+    path: "collections/Player"
+  - name: "Advertisements Hard"
+    path: "collections/Advertisements Hard"
+  - name: "MatchHistory Hard"
+    path: "collections/MatchHistory Hard"
+  - name: "Ratings Hard"
+    path: "collections/Ratings Hard"
+  - name: "Teams Hard"
+    path: "collections/Teams Hard"
+  - name: "Tournaments Hard"
+    path: "collections/Tournaments Hard"
+  - name: "Player Hard"
+    path: "collections/Player Hard"
+
+specs:
+
+docs: ''

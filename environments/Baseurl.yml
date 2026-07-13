@@ -1,0 +1,4 @@
+name: Baseurl
+variables:
+  - name: Base
+    value: 51.250.0.63:5004

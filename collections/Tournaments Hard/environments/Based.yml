@@ -1,0 +1,4 @@
+name: Based
+variables:
+  - name: BasedURL
+    value: http://51.250.0.63:5004
