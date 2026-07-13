@@ -12,7 +12,7 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const validStatuses = [200, 201, 204, 400];
+        const validStatuses = [200];
 
         test("Статус-код должен быть допустимым", function() {
             expect(validStatuses).to.include(res.status);

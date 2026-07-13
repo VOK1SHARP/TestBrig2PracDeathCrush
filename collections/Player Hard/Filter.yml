@@ -16,8 +16,8 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        const validStatuses = [200, 201, 204];
-        test("Статус-код должен быть 200, 201 или 204", function() {
+        const validStatuses = [200]
+        test("Статус-код должен быть 200", function() {
             expect(validStatuses).to.include(res.status);
         });
         test("Тело ответа не должно быть пустым", function() {
